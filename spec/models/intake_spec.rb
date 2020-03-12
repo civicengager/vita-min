@@ -88,6 +88,7 @@
 #  separated_year                                       :string
 #  sold_a_home                                          :integer          default("unfilled"), not null
 #  source                                               :string
+#  spouse_auth_token                                    :string
 #  spouse_had_disability                                :integer          default("unfilled"), not null
 #  spouse_issued_identity_pin                           :integer          default("unfilled"), not null
 #  spouse_was_blind                                     :integer          default("unfilled"), not null
@@ -371,6 +372,37 @@ describe Intake do
 
       it "returns an empty array" do
         expect(intake.student_names).to eq([])
+      end
+    end
+  end
+
+  describe "#get_or_create_spouse_auth_token" do
+    let(:intake) { build :intake, spouse_auth_token: existing_token }
+    let(:new_token) { "n3wt0k3n" }
+    before do
+      allow(SecureRandom).to receive(:urlsafe_base64).with(8).and_return(new_token)
+    end
+
+
+    context "when a spouse auth token does not yet exist" do
+      let(:existing_token) { nil }
+
+      it "generates the token and returns it" do
+        result = intake.get_or_create_spouse_auth_token
+        expect(result).to eq new_token
+        expect(intake.spouse_auth_token).to eq new_token
+        expect(SecureRandom).to have_received(:urlsafe_base64).with(8)
+      end
+    end
+
+    context "when the token already exists" do
+      let(:existing_token) { "3x1st1ngT0k3n" }
+
+      it "just returns the token and does not generate a new one" do
+        result = intake.get_or_create_spouse_auth_token
+        expect(result).to eq existing_token
+        expect(intake.spouse_auth_token).to eq existing_token
+        expect(SecureRandom).not_to have_received(:urlsafe_base64)
       end
     end
   end
